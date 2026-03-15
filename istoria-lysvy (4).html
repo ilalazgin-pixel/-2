@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Интерактивная карта Лысьвы - Достопримечательности</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #1e5799 0%, #207cca 100%);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .map-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .map-wrapper {
+            flex: 2;
+            min-width: 700px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        #map {
+            width: 100%;
+            height: 650px;
+            border-radius: 10px;
+            z-index: 1;
+        }
+        
+        .map-overlay {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .info-panel {
+            flex: 1;
+            min-width: 300px;
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            max-height: 650px;
+            overflow-y: auto;
+        }
+
+        /* Новые элементы управления */
+        .controls-panel {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .search-box {
+            margin-bottom: 1rem;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 25px;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-box input:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 1rem;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: 2px solid #e1e8ed;
+            background: white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .filter-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+
+        .filter-btn:hover {
+            border-color: #3498db;
+        }
+
+        .stats-panel {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e1e8ed;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+        }
+        
+        .info-panel h2 {
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #3498db;
+        }
+        
+        .landmark-list {
+            list-style: none;
+        }
+        
+        .landmark-item {
+            padding: 0.8rem;
+            margin-bottom: 0.8rem;
+            background: #f8f9fa;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-left: 4px solid #3498db;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .landmark-item:hover {
+            background: #e9f5ff;
+            transform: translateX(5px);
+        }
+        
+        .landmark-item.active {
+            background: #d4edff;
+            border-left-color: #e74c3c;
+        }
+
+        .landmark-info {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+        
+        .landmark-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            background: #e74c3c;
+            color: white;
+            border-radius: 50%;
+            margin-right: 10px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .landmark-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .favorite-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #bdc3c7;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            padding: 5px;
+            border-radius: 50%;
+        }
+
+        .favorite-btn:hover {
+            background: rgba(231, 76, 60, 0.1);
+        }
+
+        .favorite-btn.active {
+            color: #e74c3c;
+        }
+
+        .category-badge {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 10px;
+            color: white;
+        }
+        
+        .landmark-details {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .landmark-details.active {
+            display: block;
+        }
+        
+        .landmark-details h3 {
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+        
+        .landmark-details p {
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .landmark-details .address {
+            color: #7f8c8d;
+            font-style: italic;
+        }
+
+        /* Стили для исторической хроники */
+        .timeline-section {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .timeline {
+            position: relative;
+            max-width: 100%;
+            margin: 20px auto;
+        }
+
+        .timeline::after {
+            content: '';
+            position: absolute;
+            width: 6px;
+            background-color: #3498db;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            margin-left: -3px;
+        }
+
+        .timeline-item {
+            padding: 10px 40px;
+            position: relative;
+            background-color: inherit;
+            width: 50%;
+        }
+
+        .timeline-item::after {
+            content: '';
+            position: absolute;
+            width: 25px;
+            height: 25px;
+            right: -13px;
+            background-color: white;
+            border: 4px solid #3498db;
+            top: 15px;
+            border-radius: 50%;
+            z-index: 1;
+        }
+
+        .left {
+            left: 0;
+        }
+
+        .right {
+            left: 50%;
+        }
+
+        .left::before {
+            content: " ";
+            height: 0;
+            position: absolute;
+            top: 22px;
+            width: 0;
+            z-index: 1;
+            right: 30px;
+            border: medium solid white;
+            border-width: 10px 0 10px 10px;
+            border-color: transparent transparent transparent white;
+        }
+
+        .right::before {
+            content: " ";
+            height: 0;
+            position: absolute;
+            top: 22px;
+            width: 0;
+            z-index: 1;
+            left: 30px;
+            border: medium solid white;
+            border-width: 10px 10px 10px 0;
+            border-color: transparent white transparent transparent;
+        }
+
+        .right::after {
+            left: -13px;
+        }
+
+        .timeline-content {
+            padding: 20px;
+            background-color: white;
+            position: relative;
+            border-radius: 6px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .timeline-year {
+            font-weight: bold;
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+
+        .tab-buttons {
+            display: flex;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #e1e8ed;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            border-bottom-color: #3498db;
+            color: #3498db;
+            font-weight: bold;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+        
+        footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        /* Стили для всплывающих окон Leaflet */
+        .leaflet-popup-content-wrapper {
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .leaflet-popup-content {
+            margin: 15px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .popup-title {
+            font-size: 1.2rem;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+        
+        .popup-address {
+            color: #7f8c8d;
+            font-style: italic;
+            margin-top: 0.5rem;
+        }
+
+        .popup-favorite {
+            margin-top: 10px;
+            text-align: center;
+        }
+        
+        @media (max-width: 1100px) {
+            .map-container {
+                flex-direction: column;
+            }
+            
+            .map-wrapper {
+                min-width: 100%;
+            }
+            
+            #map {
+                height: 500px;
+            }
+
+            .timeline::after {
+                left: 31px;
+            }
+
+            .timeline-item {
+                width: 100%;
+                padding-left: 70px;
+                padding-right: 25px;
+            }
+
+            .timeline-item::before {
+                left: 60px;
+                border: medium solid white;
+                border-width: 10px 10px 10px 0;
+                border-color: transparent white transparent transparent;
+            }
+
+            .left::after, .right::after {
+                left: 18px;
+            }
+
+            .right {
+                left: 0%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Интерактивная карта Лысьвы</h1>
+        <p class="subtitle">Достопримечательности города Лысьвы Пермского края</p>
+    </header>
+    
+    <div class="container">
+        <!-- Панель управления -->
+        <div class="controls-panel">
+            <div class="tab-buttons">
+                <button class="tab-btn active" data-tab="map">Карта</button>
+                <button class="tab-btn" data-tab="history">История</button>
+                <button class="tab-btn" data-tab="favorites">Избранное</button>
+            </div>
+
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 Поиск достопримечательностей...">
+            </div>
+
+            <div class="filters">
+                <button class="filter-btn active" data-category="all">Все</button>
+                <button class="filter-btn" data-category="architecture">Архитектура</button>
+                <button class="filter-btn" data-category="museum">Музеи</button>
+                <button class="filter-btn" data-category="park">Парки</button>
+                <button class="filter-btn" data-category="monument">Памятники</button>
+                <button class="filter-btn" data-category="water">Водоёмы</button>
+                <button class="filter-btn" data-category="church">Храмы</button>
+            </div>
+
+            <div class="stats-panel">
+                <div class="stat-item">
+                    <div class="stat-number" id="totalLandmarks">38</div>
+                    <div class="stat-label">Всего мест</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="favoritesCount">0</div>
+                    <div class="stat-label">В избранном</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Вкладка с картой -->
+        <div class="tab-content active" id="mapTab">
+            <div class="map-container">
+                <div class="map-wrapper">
+                    <div id="map"></div>
+                    <div class="map-overlay">Территория города Лысьвы и окрестностей</div>
+                </div>
+                
+                <div class="info-panel">
+                    <h2>Достопримечательности Лысьвы</h2>
+                    <ul class="landmark-list" id="landmarkList">
+                        <!-- Список будет заполняться автоматически -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Вкладка с историей -->
+        <div class="tab-content" id="historyTab">
+            <div class="timeline-section">
+                <h2>Историческая хроника Лысьвы</h2>
+                <div class="timeline">
+                    <div class="timeline-item left">
+                        <div class="timeline-content">
+                            <div class="timeline-year">1785 год</div>
+                            <h3>Основание завода</h3>
+                            <p>Граф Петр Шувалов получает разрешение на строительство Лысьвенского железоделательного завода, что положило начало городу.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item right">
+                        <div class="timeline-content">
+                            <div class="timeline-year">1820-е годы</div>
+                            <h3>Становление поселения</h3>
+                            <p>Вокруг завода формируется постоянное поселение, строятся первые каменные здания и церковь.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item left">
+                        <div class="timeline-content">
+                            <div class="timeline-year">1902 год</div>
+                            <h3>Строительство плотины</h3>
+                            <p>Завершено строительство новой заводской плотины, которая существенно увеличила мощность завода.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item right">
+                        <div class="timeline-content">
+                            <div class="timeline-year">1926 год</div>
+                            <h3>Получение статуса города</h3>
+                            <p>Лысьва официально получает статус города и становится важным промышленным центром Урала.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item left">
+                        <div class="timeline-content">
+                            <div class="timeline-year">1941-1945</div>
+                            <h3>Военные годы</h3>
+                            <p>Лысьвенский завод переходит на выпуск военной продукции, в город эвакуируются предприятия из западных регионов страны.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item right">
+                        <div class="timeline-content">
+                            <div class="timeline-year">1950-е годы</div>
+                            <h3>Послевоенное развитие</h3>
+                            <p>Строительство новых микрорайонов, дворца культуры, развитие социальной инфраструктуры.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item left">
+                        <div class="timeline-content">
+                            <div class="timeline-year">1980-е годы</div>
+                            <h3>Расцвет промышленности</h3>
+                            <p>Лысьвенский металлургический завод становится одним из крупнейших производителей эмалированной посуды в СССР.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item right">
+                        <div class="timeline-content">
+                            <div class="timeline-year">2000-е годы</div>
+                            <h3>Современный этап</h3>
+                            <p>Реконструкция исторического центра, развитие туристической инфраструктуры, сохранение культурного наследия.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Вкладка с избранным -->
+        <div class="tab-content" id="favoritesTab">
+            <div class="info-panel">
+                <h2>Избранные достопримечательности</h2>
+                <ul class="landmark-list" id="favoritesList">
+                    <!-- Список избранного будет заполняться автоматически -->
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>© 2025 Интерактивная карта Лысьвы. Все права защищены.</p>
+    </footer>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Координаты для центра карты (центр Лысьвы)
+            const mapCenter = [58.100, 57.805];
+            
+            // Инициализация карты
+            const map = L.map('map').setView(mapCenter, 12);
+            
+            // Добавление слоя карты OpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            // Исправленные границы города Лысьвы
+            const initialBoundary = [
+                [58.08722422156768, 57.742509841918945],
+                [58.08454714524038, 57.73680210113526],
+                [58.0833900416144, 57.73332595825196],
+                [58.083049709878196, 57.73006439208985],
+                [58.08359423909821, 57.72276878356934],
+                [58.084774023904764, 57.71615982055664],
+                [58.08361692763541, 57.70719051361085],
+                [58.084138760009495, 57.703714370727546],
+                [58.08785943053526, 57.70328521728516],
+                [58.08903907433073, 57.70457267761231],
+                [58.1000169650103, 57.69118309020997],
+                [58.10328246222281, 57.69229888916016],
+                [58.1088149832561, 57.70362854003907],
+                [58.10128691612493, 57.71804809570313],
+                [58.09550373711465, 57.73431301116944],
+                [58.09677384893937, 57.736673355102546],
+                [58.097998556795254, 57.73877620697022],
+                [58.099994286900845, 57.73796081542969],
+                [58.10235273304838, 57.739205360412605],
+                [58.104552297052464, 57.75059938430787],
+                [58.106797072991824, 57.753710746765144],
+                [58.110855450527296, 57.75950431823731],
+                [58.113587226625775, 57.756392955780036],
+                [58.11489069745513, 57.75716543197632],
+                [58.116046779519486, 57.757444381713874],
+                [58.1170668207888, 57.75658607482911],
+                [58.118426830402356, 57.757444381713874],
+                [58.119288142981134, 57.75984764099122],
+                [58.11883482316617, 57.762894630432136],
+                [58.11962812905816, 57.76697158813477],
+                [58.1229144939137, 57.768387794494636],
+                [58.12518077584819, 57.7698040008545],
+                [58.12703901947265, 57.77873039245606],
+                [58.131072434289536, 57.791862487792976],
+                [58.1326584835481, 57.795639038085945],
+                [58.13082319155648, 57.79997348785401],
+                [58.13293037061559, 57.804350852966316],
+                [58.13306631337105, 57.80748367309571],
+                [58.12758287732049, 57.83220291137696],
+                [58.119288142981134, 57.84945487976074],
+                [58.11298648054479, 57.84842491149903],
+                [58.1082254931902, 57.844562530517585],
+                [58.1021486429119, 57.84173011779786],
+                [58.10772668629053, 57.85863876342774],
+                [58.10935911928114, 57.87168502807618],
+                [58.10845222129211, 57.87683486938477],
+                [58.10645696450945, 57.8770923614502],
+                [58.104234842584475, 57.87614822387695],
+                [58.10133227068548, 57.87262916564942],
+                [58.09924590119835, 57.871513366699226],
+                [58.09734084854488, 57.86936759948731],
+                [58.09602539565859, 57.866535186767585],
+                [58.09823668955046, 57.85936832427979],
+                [58.09480062004946, 57.85142898559571],
+                [58.08722422156768, 57.8556776046753],
+                [58.08545465124316, 57.84868240356446],
+                [58.0761062339772, 57.849540710449226],
+                [58.07506232668733, 57.84022808074952],
+                [58.07388222081704, 57.83838272094727],
+                [58.069842332314266, 57.84215927124024],
+                [58.06575658692634, 57.84748077392579],
+                [58.063123303289586, 57.84902572631837],
+                [58.06048982548345, 57.849798202514656],
+                [58.05458649743381, 57.8536605834961],
+                [58.047546638909665, 57.84619331359864],
+                [58.048591350715725, 57.841043472290046],
+                [58.049863132561825, 57.836065292358406],
+                [58.05431401258684, 57.83228874206544],
+                [58.05676630139449, 57.82834053039551],
+                [58.05790156328201, 57.82164573669434],
+                [58.05930923791734, 57.817182540893555],
+                [58.05989953657801, 57.81229019165039],
+                [58.05944546155105, 57.80928611755372],
+                [58.057606398661996, 57.808642387390144],
+                [58.05692524023068, 57.80482292175294],
+                [58.060535231918266, 57.79701232910157],
+                [58.06434916637914, 57.792892456054695],
+                [58.0697515430512, 57.793407440185554],
+                [58.07628777995488, 57.78808593750001],
+                [58.07742242139689, 57.78327941894532],
+                [58.07796703647837, 57.77795791625977],
+                [58.07705934005946, 57.76748657226563],
+                [58.07960083186588, 57.759246826171875],
+                [58.081506831966465, 57.758731842041016],
+                [58.084456393370736, 57.76087760925294],
+                [58.08726959401181, 57.760148048400886],
+                [58.0884492573082, 57.75572776794434],
+                [58.0881997164019, 57.752165794372566],
+                [58.088018231010224, 57.75006294250489],
+                [58.08774600119186, 57.7478313446045]
+            ];
+            
+            // Категории для достопримечательностей
+            const categories = {
+                'architecture': { name: 'Архитектура', color: '#e74c3c' },
+                'museum': { name: 'Музеи', color: '#9b59b6' },
+                'park': { name: 'Парки', color: '#27ae60' },
+                'monument': { name: 'Памятники', color: '#f39c12' },
+                'water': { name: 'Водоёмы', color: '#3498db' },
+                'church': { name: 'Храмы', color: '#8e44ad' },
+                'industry': { name: 'Промышленность', color: '#7f8c8d' }
+            };
+
+            // ВСЕ метки достопримечательностей с категориями
+            const landmarks = [
+                {
+                    "id": 1,
+                    "name": "Парк имени А. С. Пушкина",
+                    "coords": [58.09644392189566, 57.819242477417],
+                    "description": "Один из старейших парков Лысьвы, основанный в начале XX века. Назван в честь великого русского поэта Александра Сергеевича Пушкина. Парк является популярным местом отдыха горожан, здесь проводятся культурные мероприятия и праздники.",
+                    "address": "ул. Мира, центральная часть города",
+                    "category": "park"
+                },
+                {
+                    "id": 2,
+                    "name": "Лысьвенский театр драмы имени А. А. Савина",
+                    "coords": [58.10001953401398, 57.81240820884705],
+                    "description": "Муниципальный драматический театр, основанный в 1944 году. Носит имя режиссера А. А. Савина. Театр известен своими постановками русской и зарубежной классики, а также современными спектаклями.",
+                    "address": "ул. Мира, 31",
+                    "category": "architecture"
+                },
+                {
+                    "id": 3,
+                    "name": "Лысьвенский пруд",
+                    "coords": [58.07936966570648, 57.79975891113282],
+                    "description": "Искусственный водоём, созданный в XVIII веке для нужд Лысьвенского металлургического завода. Является историческим и природным символом города. На берегах пруда расположены зоны отдыха и спортивные площадки.",
+                    "address": "Центральная часть города",
+                    "category": "water"
+                },
+                {
+                    "id": 4,
+                    "name": "Детский парк",
+                    "coords": [58.09632848214757, 57.80410408973694],
+                    "description": "Парк развлечений для детей и семейного отдыха. Имеет детские площадки, аттракционы, зелёные зоны для прогулок. Популярное место проведения детских праздников и мероприятий.",
+                    "address": "Центральная часть города",
+                    "category": "park"
+                },
+                {
+                    "id": 5,
+                    "name": "Сквер имени 30-летия ВЛКСМ",
+                    "coords": [58.11024589087573, 57.79938340187073],
+                    "description": "Сквер, заложенный в честь 30-летия Всесоюзного Ленинского Коммунистического Союза Молодёжи. Сегодня это уютное место для прогулок с аллеями и скамейками.",
+                    "address": "Центральная часть города",
+                    "category": "park"
+                },
+                {
+                    "id": 6,
+                    "name": "Караськино озеро",
+                    "coords": [58.09520268137843, 57.76149988174439],
+                    "description": "Природный водоём на окраине города, популярное место рыбалки и отдыха на природе. Озеро окружено живописным лесом, здесь обитают различные виды рыб и водоплавающих птиц.",
+                    "address": "Западная часть города",
+                    "category": "water"
+                },
+                {
+                    "id": 7,
+                    "name": "Парк «Советской скульптуры» («Щусевский квартал»)",
+                    "coords": [58.09100952062609, 57.80692577362061],
+                    "description": "Уникальный парк, сохранивший образцы советской монументальной скульптуры. Расположен в историческом районе, связанном с именем архитектора А. В. Щусева. Представляет собой музей под открытым небом.",
+                    "address": "Улица Ленина",
+                    "category": "park"
+                },
+                {
+                    "id": 8,
+                    "name": "Гора «Каланча»",
+                    "coords": [58.10292221276018, 57.754665613174446],
+                    "description": "Возвышенность на окраине города, с которой открывается панорамный вид на Лысьву и окрестности. Историческое место, где ранее располагалась пожарная каланча. Популярное место для фотосъёмок и прогулок.",
+                    "address": "Западная часть города",
+                    "category": "monument"
+                },
+                {
+                    "id": 9,
+                    "name": "Площадь «Цветов»",
+                    "coords": [58.1001839498645, 57.80932903289795],
+                    "description": "Благоустроенная площадь в центре города, известная своими цветочными клумбами и ландшафтным дизайном. Место проведения городских праздников и культурных мероприятий.",
+                    "address": "центральная площадь города",
+                    "category": "park"
+                },
+                {
+                    "id": 10,
+                    "name": "Лысьвенский музей",
+                    "coords": [58.09890700522937, 57.79752731323243],
+                    "description": "Краеведческий музей с богатой коллекцией экспонатов, рассказывающих об истории города и края. Основан в 1957 году. В экспозиции представлены археологические находки, документы, фотографии и предметы быта разных эпох.",
+                    "address": "ул. Мира, 4",
+                    "category": "museum"
+                },
+                {
+                    "id": 11,
+                    "name": "Музей связи",
+                    "coords": [58.10100189859653, 57.81189858913422],
+                    "description": "Музей, посвящённый истории развития средств связи в Лысьве и регионе. Экспозиция включает старинные телефоны, телеграфные аппараты, радиоприёмники и другие средства коммуникации.",
+                    "address": "проспект Победы, 40",
+                    "category": "museum"
+                },
+                {
+                    "id": 12,
+                    "name": "Музей эмали",
+                    "coords": [58.121972882205014, 57.78808593750001],
+                    "description": "Уникальный музей при Лысьвенском металлургическом заводе, посвящённый искусству эмалирования. Представлены образцы эмалированной посуды и художественных изделий, производимых на заводе.",
+                    "address": "территория Лысьвенского металлургического завода",
+                    "category": "museum"
+                },
+                {
+                    "id": 13,
+                    "name": "Собор Троицы Живоначальной",
+                    "coords": [58.09993449103524, 57.79706597328187],
+                    "description": "Православный храм, построенный в начале XX века в русско-византийском стиле. Является architectural dominant исторического центра Лысьвы. Собор пережил годы советской власти и был возвращён верующим в 1990-х годах.",
+                    "address": "ул. Революции, 2А",
+                    "category": "church"
+                },
+                {
+                    "id": 14,
+                    "name": "Церковь Иоанна Богослова",
+                    "coords": [58.109367355651315, 57.798138856887824],
+                    "description": "Православный храм, построенный в 2000-х годах. Современная церковь, ставшая духовным центром одного из районов города. Отличается красивой архитектурой и ухоженной территорией.",
+                    "address": "ул. Смышляева, 94А",
+                    "category": "church"
+                },
+                {
+                    "id": 15,
+                    "name": "Памятник П. П. Шувалову",
+                    "coords": [58.099133792588965, 57.79633104801179],
+                    "description": "Памятник графу Петру Петровичу Шувалову - основателю Лысьвенского железоделательного завода, положившего начало городу. Установлен в честь 250-летия Лысьвы.",
+                    "address": "улица Мира",
+                    "category": "monument"
+                },
+                {
+                    "id": 16,
+                    "name": "Памятник «Героям Гражданской войны»",
+                    "coords": [58.100086283751594, 57.810589671134956],
+                    "description": "Мемориал, посвящённый участникам Гражданской войны на Урале. Установлен в память о бойцах Красной Армии, погибших в боях за установление советской власти в регионе.",
+                    "address": "центральный парк культуры и отдыха",
+                    "category": "monument"
+                },
+                {
+                    "id": 17,
+                    "name": "Бывшее здание заводской конторы",
+                    "coords": [58.09966673720756, 57.79596626758576],
+                    "description": "Историческое здание XIX века, в котором размещалась контора Лысьвенского железоделательного завода. Яркий образец промышленной архитектуры уральских заводов. В настоящее время является объектом культурного наследия.",
+                    "address": "ул. Революции, 5",
+                    "category": "architecture"
+                },
+                {
+                    "id": 18,
+                    "name": "Скульптура «Бездомные животные»",
+                    "coords": [58.09663466687713, 57.805649042129524],
+                    "description": "Трогательная скульптурная композиция, посвящённая бездомным животным. Установлена для привлечения внимания к проблеме бездомных животных и воспитания гуманного отношения к ним.",
+                    "address": "детский парк",
+                    "category": "monument"
+                },
+                {
+                    "id": 19,
+                    "name": "Памятник «Жертвам политических репрессий»",
+                    "coords": [58.10988881142831, 57.797344923019416],
+                    "description": "Мемориал, установленный в память о жителях Лысьвы, пострадавших в годы политических репрессий. Символизирует скорбь и память о трагических страницах истории страны.",
+                    "address": "сквер у церкви Иоанна Богослова",
+                    "category": "monument"
+                },
+                {
+                    "id": 20,
+                    "name": "Здание бывшей церковно-приходской школы",
+                    "coords": [58.09904307781818, 57.79829978942872],
+                    "description": "Историческое здание конца XIX века, в котором располагалась церковно-приходская школа при Соборе Троицы Живоначальной. Образец образовательной архитектуры дореволюционного периода.",
+                    "address": "ул. Мира, 6",
+                    "category": "architecture"
+                },
+                {
+                    "id": 21,
+                    "name": "Мемориал «Воинской Славы»",
+                    "coords": [58.09317731115396, 57.80122876167298],
+                    "description": "Мемориальный комплекс, посвящённый памяти воинов-лысьвенцев, погибших в годы Великой Отечественной войны. Центральное место занимает Вечный огонь и стела с именами погибших.",
+                    "address": "Центральная часть города",
+                    "category": "monument"
+                },
+                {
+                    "id": 22,
+                    "name": "Скульптура «Крылатые качели»",
+                    "coords": [58.100151483109244, 57.80969917774201],
+                    "description": "Арт-объект в виде стилизованных качелей с крыльями, символизирующий детство, мечты и свободу. Популярное место для фотографирования у горожан и гостей города.",
+                    "address": "площадь Цветов",
+                    "category": "monument"
+                },
+                {
+                    "id": 23,
+                    "name": "Памятник «Учителя и ученикам, погибшим на войне»",
+                    "coords": [58.099913363138775, 57.80803084373475],
+                    "description": "Мемориал, посвящённый педагогам и выпускникам лысьвенских школ, погибшим в годы Великой Отечественной войны. Установлен у здания одной из старейших школ города.",
+                    "address": "ул. Мира, у школы № 2",
+                    "category": "monument"
+                },
+                {
+                    "id": 24,
+                    "name": "Арт-объект «Я люблю Лысьву»",
+                    "coords": [58.100012579986355, 57.81116902828217],
+                    "description": "Современный арт-объект в виде стилизованной надписи «Я люблю Лысьву». Стал популярным местом для фотографирования и символом любви к родному городу.",
+                    "address": "центральная аллея города",
+                    "category": "monument"
+                },
+                {
+                    "id": 25,
+                    "name": "Травянский пруд",
+                    "coords": [58.09467480883051, 57.80593872070313],
+                    "description": "Живописный пруд в черте города, популярное место отдыха горожан. Название получил по расположенному рядом Травянскому микрорайону. Берега пруда благоустроены для прогулок и отдыха.",
+                    "address": "Центральная часть города",
+                    "category": "water"
+                },
+                {
+                    "id": 26,
+                    "name": "Музей «Дом графа Шувалова»",
+                    "coords": [58.098444921521626, 57.796867489814765],
+                    "description": "Музей, расположенный в историческом здании, связанном с именем основателя города графа П. П. Шувалова. Экспозиция рассказывает о жизни и деятельности Шувалова, истории становления Лысьвенского завода.",
+                    "address": "ул. Мира, 2",
+                    "category": "museum"
+                },
+                {
+                    "id": 27,
+                    "name": "Аэродром Лысьва",
+                    "coords": [58.1020455344301, 57.69680500030518],
+                    "description": "Спортивный аэродром, используемый для авиационных мероприятий, тренировок парашютистов и полётов малой авиации. Является базой Лысьвенского аэроклуба.",
+                    "address": "Западная окраина города",
+                    "category": "architecture"
+                },
+                {
+                    "id": 28,
+                    "name": "Дом отдыха сокол",
+                    "coords": [58.06123689589343, 57.80499458312989],
+                    "description": "База отдыха на южной окраине Лысьвы, расположенная в живописном лесном массиве. Предлагает отдых на природе, размещение в коттеджах и различные развлекательные мероприятия.",
+                    "address": "Южная окраина города",
+                    "category": "architecture"
+                },
+                {
+                    "id": 29,
+                    "name": "Висячий мост",
+                    "coords": [58.05197199414438, 57.84149408340455],
+                    "description": "Пешеходный висячий мост через реку Лысьва. Является инженерным сооружением и популярным местом для прогулок. С моста открываются живописные виды на реку и окружающую природу.",
+                    "address": "через реку Лысьва, южная окраина",
+                    "category": "architecture"
+                },
+                {
+                    "id": 30,
+                    "name": "Дом купца Ярославцева",
+                    "coords": [58.100040927606386, 57.798627018928535],
+                    "description": "Историческое здание конца XIX - начала XX века, принадлежавшее купцу Ярославцеву. Яркий образец купеческой архитектуры с богатым декором фасада. Объект культурного наследия регионального значения.",
+                    "address": "ул. Кирова, 4",
+                    "category": "architecture"
+                },
+                {
+                    "id": 31,
+                    "name": "Дом купца Буктемирова",
+                    "coords": [58.10012030082263, 57.80195832252503],
+                    "description": "Купеческий особняк начала XX века, принадлежавший семье Буктемировых. Архитектурный памятник в стиле модерн с элементами классицизма. В настоящее время в здании размещаются учреждения культуры.",
+                    "address": "ул. Оборина, 39",
+                    "category": "architecture"
+                },
+                {
+                    "id": 32,
+                    "name": "Парк Деревянного зодчества",
+                    "coords": [58.100057936167616, 57.8042596578598],
+                    "description": "Музей под открытым небом, где представлены образцы традиционного деревянного зодчества Урала. Включает крестьянские избы, хозяйственные постройки, ветряную мельницу и другие объекты.",
+                    "address": "центральный парк культуры и отдыха",
+                    "category": "park"
+                },
+                {
+                    "id": 33,
+                    "name": "Аллея Героев ВОВ 1941-1945 годов",
+                    "coords": [58.10757054200047, 57.810198068618774],
+                    "description": "Мемориальная аллея, посвящённая лысьвенцам - Героям Советского Союза и полным кавалерам ордена Славы. На аллее установлены памятные стелы с портретами и биографиями героев.",
+                    "address": "проспект Победы",
+                    "category": "monument"
+                },
+                {
+                    "id": 34,
+                    "name": "Сквер имени 40-летия Пионерской организации",
+                    "coords": [58.093021368959924, 57.79919028282166],
+                    "description": "Сквер, заложенный в честь 40-летия Всесоюзной пионерской организации имени В. И. Ленина. Сохранил элементы советской символики и является памятником эпохи.",
+                    "address": "Центральная часть города",
+                    "category": "park"
+                },
+                {
+                    "id": 35,
+                    "name": "Лысьвенский металлургический завод",
+                    "coords": [58.11739443201637, 57.787356376647956],
+                    "description": "Градообразующее предприятие Лысьвы, основанное в 1785 году. Один из старейших металлургических заводов Урала. Специализируется на производстве эмалированной посуды, стального листа и другой продукции.",
+                    "address": "Промышленная часть города",
+                    "category": "industry"
+                },
+                {
+                    "id": 36,
+                    "name": "Заводская плотина",
+                    "coords": [58.09865315227709, 57.79103636741639],
+                    "description": "Историческая плотина Лысьвенского пруда, построенная в XVIII веке для обеспечения работы железоделательного завода. Является инженерным памятником и важным элементом исторического ландшафта города.",
+                    "address": "исток Лысьвенского пруда",
+                    "category": "architecture"
+                },
+                {
+                    "id": 37,
+                    "name": "Дворец культуры Лысьвенского металлургического завода",
+                    "coords": [58.092128232352515, 57.79872357845307],
+                    "description": "Культурный центр, построенный в 1950-х годах для работников металлургического завода. Архитектурный памятник в стиле советского неоклассицизма. В настоящее время здесь проходят концерты, спектакли и другие культурные мероприятия.",
+                    "address": "ул. Ленина, 2",
+                    "category": "architecture"
+                },
+                {
+                    "id": 38,
+                    "name": "Дом купцов Шиловых",
+                    "coords": [58.100420783540976, 57.79976963996888],
+                    "description": "Купеческий особняк конца XIX века, принадлежавший семье Шиловых - известных лысьвенских предпринимателей. Образец жилой архитектуры дореволюционного периода с богатым лепным декором.",
+                    "address": "ул. Кирова, 11",
+                    "category": "architecture"
+                }
+            ];
+
+            const markers = [];
+            let favorites = JSON.parse(localStorage.getItem('lysva_favorites')) || [];
+            
+            // Создание полигона границ
+            let cityBoundary = L.polygon(initialBoundary, {
+                color: '#3498db',
+                fillColor: '#3498db',
+                fillOpacity: 0.1,
+                weight: 3
+            }).addTo(map);
+            
+            // Добавление подписи территории
+            cityBoundary.bindPopup("Территория города Лысьвы и окрестностей");
+            
+            // Функции для работы с Local Storage
+            function saveToStorage(key, data) {
+                localStorage.setItem(key, JSON.stringify(data));
+            }
+
+            // Обновление статистики
+            function updateStats() {
+                document.getElementById('totalLandmarks').textContent = landmarks.length;
+                document.getElementById('favoritesCount').textContent = favorites.length;
+            }
+
+            // Добавление в избранное
+            function toggleFavorite(landmarkId, event) {
+                if (event) {
+                    event.stopPropagation(); // Предотвращаем всплытие события
+                }
+                
+                const index = favorites.indexOf(landmarkId);
+                if (index === -1) {
+                    favorites.push(landmarkId);
+                } else {
+                    favorites.splice(index, 1);
+                }
+                saveToStorage('lysva_favorites', favorites);
+                updateStats();
+                updateLandmarkList();
+                updateFavoritesList();
+                updateMarkers();
+            }
+
+            // Поиск и фильтрация
+            function filterLandmarks() {
+                const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+                const activeCategory = document.querySelector('.filter-btn.active').dataset.category;
+                
+                return landmarks.filter(landmark => {
+                    const matchesSearch = landmark.name.toLowerCase().includes(searchTerm) || 
+                                         landmark.description.toLowerCase().includes(searchTerm);
+                    const matchesCategory = activeCategory === 'all' || landmark.category === activeCategory;
+                    return matchesSearch && matchesCategory;
+                });
+            }
+
+            // Функция для обновления списка достопримечательностей
+            function updateLandmarkList() {
+                const landmarkList = document.getElementById('landmarkList');
+                const filteredLandmarks = filterLandmarks();
+                
+                landmarkList.innerHTML = '';
+                
+                filteredLandmarks.forEach(landmark => {
+                    const isFavorite = favorites.includes(landmark.id);
+                    const categoryInfo = categories[landmark.category];
+                    
+                    const listItem = document.createElement('li');
+                    listItem.className = `landmark-item`;
+                    listItem.setAttribute('data-id', landmark.id);
+                    
+                    listItem.innerHTML = `
+                        <div class="landmark-info">
+                            <span class="landmark-number">${landmark.id}</span>
+                            ${landmark.name}
+                            <span class="category-badge" style="background-color: ${categoryInfo.color}">
+                                ${categoryInfo.name}
+                            </span>
+                        </div>
+                        <div class="landmark-actions">
+                            <button class="favorite-btn ${isFavorite ? 'active' : ''}" onclick="toggleFavorite(${landmark.id}, event)">
+                                <i class="fas fa-heart"></i>
+                            </button>
+                        </div>
+                    `;
+                    
+                    const details = document.createElement('div');
+                    details.className = 'landmark-details';
+                    details.id = `details-${landmark.id}`;
+                    
+                    details.innerHTML = `
+                        <h3>${landmark.name}</h3>
+                        <p>${landmark.description}</p>
+                        <p class="address">${landmark.address}</p>
+                        <div class="popup-favorite">
+                            <button onclick="toggleFavorite(${landmark.id})" style="padding: 8px 15px; background: ${isFavorite ? '#e74c3c' : '#3498db'}; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                ${isFavorite ? '❤️ Удалить из избранного' : '🤍 Добавить в избранное'}
+                            </button>
+                        </div>
+                    `;
+                    
+                    landmarkList.appendChild(listItem);
+                    landmarkList.appendChild(details);
+                    
+                    // Обработчик клика для элемента списка
+                    listItem.addEventListener('click', function(e) {
+                        if (!e.target.closest('.landmark-actions')) {
+                            const landmarkId = landmark.id;
+                            const landmarkObj = landmarks.find(l => l.id == landmarkId);
+                            
+                            if (landmarkObj) {
+                                map.setView(landmarkObj.coords, 14);
+                                
+                                const markerObj = markers.find(m => m.id == landmarkId);
+                                if (markerObj) {
+                                    markerObj.marker.openPopup();
+                                }
+                                
+                                document.querySelectorAll('.landmark-details').forEach(detail => {
+                                    detail.classList.remove('active');
+                                });
+                                
+                                document.querySelectorAll('.landmark-item').forEach(item => {
+                                    item.classList.remove('active');
+                                });
+                                
+                                this.classList.add('active');
+                                details.classList.add('active');
+                            }
+                        }
+                    });
+                });
+            }
+
+            // Обновление списка избранного
+            function updateFavoritesList() {
+                const favoritesList = document.getElementById('favoritesList');
+                const favoriteLandmarks = landmarks.filter(landmark => favorites.includes(landmark.id));
+                
+                favoritesList.innerHTML = '';
+                
+                if (favoriteLandmarks.length === 0) {
+                    favoritesList.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 2rem;">В избранном пока ничего нет</p>';
+                    return;
+                }
+                
+                favoriteLandmarks.forEach(landmark => {
+                    const categoryInfo = categories[landmark.category];
+                    
+                    const listItem = document.createElement('li');
+                    listItem.className = 'landmark-item';
+                    listItem.setAttribute('data-id', landmark.id);
+                    
+                    listItem.innerHTML = `
+                        <div class="landmark-info">
+                            <span class="landmark-number">${landmark.id}</span>
+                            ${landmark.name}
+                            <span class="category-badge" style="background-color: ${categoryInfo.color}">
+                                ${categoryInfo.name}
+                            </span>
+                        </div>
+                        <div class="landmark-actions">
+                            <button class="favorite-btn active" onclick="toggleFavorite(${landmark.id}, event)">
+                                <i class="fas fa-heart"></i>
+                            </button>
+                        </div>
+                    `;
+                    
+                    listItem.addEventListener('click', function() {
+                        map.setView(landmark.coords, 14);
+                        const markerObj = markers.find(m => m.id == landmark.id);
+                        if (markerObj) {
+                            markerObj.marker.openPopup();
+                        }
+                        // Переключаемся на вкладку карты
+                        switchToTab('map');
+                    });
+                    
+                    favoritesList.appendChild(listItem);
+                });
+            }
+
+            // Обновление маркеров на карте
+            function updateMarkers() {
+                markers.forEach(markerData => {
+                    const landmark = landmarks.find(l => l.id === markerData.id);
+                    const isFavorite = favorites.includes(landmark.id);
+                    
+                    // Обновляем popup контент
+                    markerData.marker.setPopupContent(`
+                        <div class="popup-title">${landmark.name}</div>
+                        <div>${landmark.description}</div>
+                        <div class="popup-address">${landmark.address}</div>
+                        <div class="popup-favorite">
+                            <button onclick="toggleFavorite(${landmark.id})" style="margin-top: 10px; padding: 8px 15px; width: 100%; background: ${isFavorite ? '#e74c3c' : '#3498db'}; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                ${isFavorite ? '❤️ Удалить из избранного' : '🤍 Добавить в избранное'}
+                            </button>
+                        </div>
+                    `);
+                });
+            }
+            
+            // Загрузка сохраненных меток на карту
+            function loadSavedLandmarks() {
+                landmarks.forEach(landmark => {
+                    const isFavorite = favorites.includes(landmark.id);
+                    const categoryInfo = categories[landmark.category];
+                    
+                    const marker = L.marker(landmark.coords)
+                        .addTo(map)
+                        .bindPopup(`
+                            <div class="popup-title">${landmark.name}</div>
+                            <div>${landmark.description}</div>
+                            <div class="popup-address">${landmark.address}</div>
+                            <div class="popup-favorite">
+                                <button onclick="toggleFavorite(${landmark.id})" style="margin-top: 10px; padding: 8px 15px; width: 100%; background: ${isFavorite ? '#e74c3c' : '#3498db'}; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                    ${isFavorite ? '❤️ Удалить из избранного' : '🤍 Добавить в избранное'}
+                                </button>
+                            </div>
+                        `);
+                    
+                    markers.push({
+                        id: landmark.id,
+                        marker: marker
+                    });
+                });
+            }
+
+            // Функция переключения вкладок
+            function switchToTab(tabName) {
+                // Убираем активный класс у всех кнопок и вкладок
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                // Добавляем активный класс текущей кнопке и вкладке
+                document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+                document.getElementById(tabName + 'Tab').classList.add('active');
+                
+                // Обновляем список избранного при переходе на вкладку
+                if (tabName === 'favorites') {
+                    updateFavoritesList();
+                }
+            }
+
+            // Переключение вкладок
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const tabName = this.dataset.tab;
+                    switchToTab(tabName);
+                });
+            });
+
+            // Поиск
+            document.getElementById('searchInput').addEventListener('input', updateLandmarkList);
+
+            // Фильтрация по категориям
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    updateLandmarkList();
+                });
+            });
+
+            // Сделаем функции глобальными для использования в onclick
+            window.toggleFavorite = toggleFavorite;
+            window.switchToTab = switchToTab;
+            
+            // Инициализация
+            loadSavedLandmarks();
+            updateLandmarkList();
+            updateStats();
+            updateFavoritesList();
+            
+            console.log('Карта загружена успешно!');
+            console.log('Количество меток:', landmarks.length);
+            console.log('Избранных:', favorites.length);
+            console.log('Границы установлены');
+        });
+    </script>
+</body>
+</html>
